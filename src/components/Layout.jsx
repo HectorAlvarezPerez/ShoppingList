@@ -28,6 +28,15 @@ export default function Layout({ children, activeTab, setActiveTab }) {
     );
 
     return (
+    const COLOR_THEMES = {
+            emerald: 'bg-emerald-500 ring-emerald-500',
+            blue: 'bg-blue-500 ring-blue-500',
+            orange: 'bg-orange-500 ring-orange-500',
+            green: 'bg-emerald-500 ring-emerald-500', // Fallback
+            primary: 'bg-primary ring-primary'
+        };
+
+    return (
         <div className="min-h-screen bg-background flex">
             {/* Mobile Menu Overlay */}
             {isMobileMenuOpen && (
@@ -80,24 +89,26 @@ export default function Layout({ children, activeTab, setActiveTab }) {
 
                     {/* Profile Tabs */}
                     <div className="flex items-center space-x-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 hide-scrollbar">
-                        {profiles.map(profile => (
-                            <button
-                                key={profile.id}
-                                onClick={() => setCurrentProfile(profile)}
-                                className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${currentProfile?.id === profile.id
-                                    ? `bg-${profile.color_theme || 'primary'} text-white shadow-sm ring-2 ring-offset-2 ring-${profile.color_theme || 'primary'}`
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                    }`}
-                                style={{
-                                    backgroundColor: currentProfile?.id === profile.id ? undefined : undefined, // Let Tailwind handle it or inline styles if dynamic colors needed
-                                }}
-                            >
-                                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">
-                                    {profile.name.charAt(0)}
-                                </div>
-                                <span className="font-medium">{profile.name}</span>
-                            </button>
-                        ))}
+                        {profiles.map(profile => {
+                            const themeClass = COLOR_THEMES[profile.color_theme] || COLOR_THEMES.primary;
+                            const isActive = currentProfile?.id === profile.id;
+
+                            return (
+                                <button
+                                    key={profile.id}
+                                    onClick={() => setCurrentProfile(profile)}
+                                    className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${isActive
+                                            ? `${themeClass} text-white shadow-sm ring-2 ring-offset-2`
+                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        }`}
+                                >
+                                    <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">
+                                        {profile.name.charAt(0)}
+                                    </div>
+                                    <span className="font-medium">{profile.name}</span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 

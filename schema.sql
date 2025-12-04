@@ -6,22 +6,22 @@ create table profiles (
   id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   name text not null,
-  color_theme text, -- e.g., "green", "orange", "blue"
+  color_theme text, -- e.g., "emerald", "blue", "orange"
   avatar_url text
 );
 
--- Pre-populate profiles
+-- Pre-populate profiles (Spanish)
 insert into profiles (name, color_theme) values 
-  ('Mom', 'green'),
-  ('Dad', 'blue'),
-  ('Me', 'orange');
+  ('Mamá', 'emerald'),
+  ('Papá', 'blue'),
+  ('Héctor', 'orange');
 
 -- 2. Weekly Plan Table
 create table weekly_plan (
   id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  day_of_week text not null, -- "Monday", "Tuesday", etc.
-  meal_type text not null, -- "Breakfast", "Lunch", "Dinner", "Snack"
+  day_of_week text not null, -- "Lunes", "Martes", etc.
+  meal_type text not null, -- "Desayuno", "Comida", "Cena", "Snack"
   dish_name text,
   profile_id uuid references profiles(id) on delete cascade
 );
@@ -39,6 +39,3 @@ create table shopping_list (
 alter table profiles disable row level security;
 alter table weekly_plan disable row level security;
 alter table shopping_list disable row level security;
-
--- If RLS was previously enabled and you want to be double sure, you can drop policies.
--- But disabling RLS on the table is sufficient for "public" access in Supabase if no other restrictions apply.

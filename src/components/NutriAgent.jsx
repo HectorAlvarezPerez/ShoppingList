@@ -57,7 +57,7 @@ export default function NutriAgent() {
                     },
                     { role: "user", content: text }
                 ],
-                model: "gpt-3.5-turbo",
+                model: "gpt-4o-mini",
                 response_format: { type: "json_object" },
             });
 
@@ -163,8 +163,8 @@ export default function NutriAgent() {
                     >
                         <div
                             className={`max-w-[80%] p-4 rounded-2xl shadow-sm ${msg.sender === 'user'
-                                    ? 'bg-primary text-white rounded-tr-none'
-                                    : 'bg-white border border-gray-100 text-gray-700 rounded-tl-none'
+                                ? 'bg-primary text-white rounded-tr-none'
+                                : 'bg-white border border-gray-100 text-gray-700 rounded-tl-none'
                                 }`}
                         >
                             <p className="text-sm leading-relaxed">{msg.text}</p>
