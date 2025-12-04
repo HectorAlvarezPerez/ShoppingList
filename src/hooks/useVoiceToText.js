@@ -11,7 +11,7 @@ export function useVoiceToText() {
             const recognitionInstance = new SpeechRecognition();
             recognitionInstance.continuous = false;
             recognitionInstance.interimResults = false;
-            recognitionInstance.lang = 'en-US';
+            recognitionInstance.lang = 'es-ES';
 
             recognitionInstance.onresult = (event) => {
                 const text = event.results[0][0].transcript;
