@@ -27,14 +27,13 @@ export default function Layout({ children, activeTab, setActiveTab }) {
         </button>
     );
 
-    return (
     const COLOR_THEMES = {
-            emerald: 'bg-emerald-500 ring-emerald-500',
-            blue: 'bg-blue-500 ring-blue-500',
-            orange: 'bg-orange-500 ring-orange-500',
-            green: 'bg-emerald-500 ring-emerald-500', // Fallback
-            primary: 'bg-primary ring-primary'
-        };
+        emerald: 'bg-emerald-500 ring-emerald-500',
+        blue: 'bg-blue-500 ring-blue-500',
+        orange: 'bg-orange-500 ring-orange-500',
+        green: 'bg-emerald-500 ring-emerald-500', // Fallback
+        primary: 'bg-primary ring-primary'
+    };
 
     return (
         <div className="min-h-screen bg-background flex">
@@ -98,8 +97,8 @@ export default function Layout({ children, activeTab, setActiveTab }) {
                                     key={profile.id}
                                     onClick={() => setCurrentProfile(profile)}
                                     className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${isActive
-                                            ? `${themeClass} text-white shadow-sm ring-2 ring-offset-2`
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        ? `${themeClass} text-white shadow-sm ring-2 ring-offset-2`
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                         }`}
                                 >
                                     <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">
