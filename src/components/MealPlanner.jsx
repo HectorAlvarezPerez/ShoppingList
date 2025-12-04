@@ -4,8 +4,8 @@ import MealCell from './MealCell';
 import FavoritesSidebar from './FavoritesSidebar';
 import { Eye, EyeOff } from 'lucide-react';
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const MEAL_TYPES = ['Desayuno', 'Comida', 'Cena', 'Snack'];
 
 export default function MealPlanner() {
     const { meals, updateMeal, currentProfile } = useApp();
@@ -38,14 +38,14 @@ export default function MealPlanner() {
             <div className="h-full flex flex-col">
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-4xl font-bold text-gray-800 flex items-center gap-3">
-                        <span className="text-6xl">❄️</span> Fridge View
+                        <span className="text-6xl">❄️</span> Vista Nevera
                     </h2>
                     <button
                         onClick={() => setIsFridgeView(false)}
                         className="flex items-center space-x-2 px-6 py-3 bg-gray-800 text-white rounded-xl hover:bg-gray-700 transition-colors text-lg font-medium"
                     >
                         <EyeOff size={24} />
-                        <span>Exit</span>
+                        <span>Salir</span>
                     </button>
                 </div>
 
@@ -54,11 +54,11 @@ export default function MealPlanner() {
                         <div key={day} className="bg-white rounded-3xl shadow-xl border-4 border-primary/20 p-8 flex flex-col">
                             <h3 className="text-3xl font-bold text-primary mb-8 border-b-2 border-gray-100 pb-4">{day}</h3>
                             <div className="space-y-8 flex-1">
-                                {['Lunch', 'Dinner'].map(type => (
+                                {['Comida', 'Cena'].map(type => (
                                     <div key={type}>
                                         <span className="text-xl font-bold text-gray-400 uppercase tracking-wider">{type}</span>
                                         <div className="mt-2 text-4xl font-medium text-gray-800 leading-tight">
-                                            {getMealContent(day, type) || "Not planned"}
+                                            {getMealContent(day, type) || "Sin planificar"}
                                         </div>
                                     </div>
                                 ))}
@@ -75,15 +75,15 @@ export default function MealPlanner() {
             <div className="flex-1 flex flex-col pr-6 overflow-hidden">
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-800">Weekly Planner</h2>
-                        <p className="text-gray-500">Plan meals for <span className="font-bold text-primary">{currentProfile?.name}</span></p>
+                        <h2 className="text-2xl font-bold text-gray-800">Planificador Semanal</h2>
+                        <p className="text-gray-500">Planificando comidas para <span className="font-bold text-primary">{currentProfile?.name}</span></p>
                     </div>
                     <button
                         onClick={() => setIsFridgeView(true)}
                         className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
                     >
                         <Eye size={18} />
-                        <span>Fridge View</span>
+                        <span>Vista Nevera</span>
                     </button>
                 </div>
 
@@ -91,7 +91,7 @@ export default function MealPlanner() {
                     <div className="min-w-[800px] h-full flex flex-col">
                         {/* Header Row */}
                         <div className="grid grid-cols-8 border-b border-gray-100 bg-gray-50/50">
-                            <div className="p-4 font-semibold text-gray-400 text-xs uppercase tracking-wider">Meal</div>
+                            <div className="p-4 font-semibold text-gray-400 text-xs uppercase tracking-wider">Comida</div>
                             {DAYS.map(day => (
                                 <div key={day} className="p-4 font-semibold text-gray-700 text-center border-l border-gray-100">
                                     {day.slice(0, 3)}

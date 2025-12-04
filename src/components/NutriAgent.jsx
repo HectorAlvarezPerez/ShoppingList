@@ -1,22 +1,27 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Send, Bot, Sparkles } from 'lucide-react';
+import { Send, Bot, Sparkles, AlertTriangle } from 'lucide-react';
+import OpenAI from 'openai';
 
 const SIMULATED_RESPONSES = {
-    default: "I'm your Nutri-Agent! I can help you plan meals or manage your shopping list. Try saying 'Add milk to the list' or 'Plan Pizza for Friday Dinner'.",
-    keto: "I've generated a Keto plan for you! Avocado and eggs are on the menu.",
-    vegan: "Going plant-based? Great choice! I've suggested some lentil soups and salads.",
-    snack: "How about some apple slices with almond butter? It's healthy and delicious!",
+    default: "¡Hola! Soy tu Nutri-Agente. Puedo ayudarte a planificar comidas o gestionar tu lista de la compra. Prueba a decir 'Añade leche a la lista' o 'Planifica Pizza para la Cena del Viernes'.",
+    keto: "¡He generado un plan Keto para ti! Aguacate y huevos están en el menú.",
+    vegan: "Going plant-based? ¡Genial! He sugerido algunas sopas de lentejas y ensaladas.",
+    snack: "¿Qué tal unas rodajas de manzana con mantequilla de almendra? ¡Es saludable y delicioso!",
 };
 
 export default function NutriAgent() {
     const { addShoppingItem, updateMeal, currentProfile } = useApp();
     const [messages, setMessages] = useState([
-        { id: 1, text: `Hi ${currentProfile?.name || 'there'}! I'm Nutri-Agent. How can I help you eat better today?`, sender: 'bot' }
+        { id: 1, text: `¡Hola ${currentProfile?.name || ''}! Soy Nutri-Agente. ¿Cómo puedo ayudarte a comer mejor hoy?`, sender: 'bot' }
     ]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef(null);
+
+    // Initialize OpenAI Client
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    const openai = apiKey ? new OpenAI({ apiKey, dangerouslyAllowBrowser: true }) : null;
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -26,43 +31,84 @@ export default function NutriAgent() {
         scrollToBottom();
     }, [messages]);
 
-    const processCommand = async (text) => {
+    const processCommandWithAI = async (text) => {
+        if (!openai) return processCommandSimulated(text);
+
+        try {
+            const completion = await openai.chat.completions.create({
+                messages: [
+                    {
+                        role: "system",
+                        content: `You are Nutri-Agent, a helpful family meal assistant. You speak Spanish.
+            You have access to the current user's profile: ${currentProfile?.name}.
+            
+            Analyze the user's request and return a JSON object with one of the following structures:
+
+            1. To add an item to the shopping list:
+            { "type": "add_item", "item": "Name of item" }
+
+            2. To plan a meal (Days: Lunes, Martes, Miércoles, Jueves, Viernes, Sábado, Domingo. Types: Desayuno, Comida, Cena, Snack):
+            { "type": "plan_meal", "day": "Day", "mealType": "Type", "dish": "Dish Name" }
+
+            3. For general chat or advice:
+            { "type": "chat", "message": "Your helpful response in Spanish" }
+
+            ALWAYS return valid JSON.`
+                    },
+                    { role: "user", content: text }
+                ],
+                model: "gpt-3.5-turbo",
+                response_format: { type: "json_object" },
+            });
+
+            const response = JSON.parse(completion.choices[0].message.content);
+
+            if (response.type === 'add_item') {
+                await addShoppingItem(response.item);
+                return `He añadido "${response.item}" a la lista de la compra.`;
+            } else if (response.type === 'plan_meal') {
+                if (currentProfile) {
+                    await updateMeal(response.day, response.mealType, response.dish, currentProfile.id);
+                    return `¡Hecho! He planificado "${response.dish}" para la ${response.mealType} del ${response.day}.`;
+                } else {
+                    return "Por favor, selecciona un perfil primero.";
+                }
+            } else {
+                return response.message;
+            }
+
+        } catch (error) {
+            console.error("OpenAI Error:", error);
+            return "Lo siento, tuve un problema conectando con mi cerebro digital. ¿Puedes intentarlo de nuevo?";
+        }
+    };
+
+    const processCommandSimulated = async (text) => {
         const lowerText = text.toLowerCase();
         let responseText = SIMULATED_RESPONSES.default;
 
         // 1. Add to Shopping List
-        const addMatch = lowerText.match(/add (.+) to (?:the )?(?:shopping )?list/);
+        const addMatch = lowerText.match(/añad[ei] (.+) a (?:la )?(?:lista)/);
         if (addMatch) {
             const item = addMatch[1];
             await addShoppingItem(item);
-            responseText = `I've added "${item}" to the global shopping list.`;
+            responseText = `He añadido "${item}" a la lista de la compra global.`;
         }
 
-        // 2. Plan Meal
-        const planMatch = lowerText.match(/plan (.+) for (\w+) (\w+)/);
+        // 2. Plan Meal (Simple regex for Spanish)
+        // "Planifica Pizza para la Cena del Viernes"
+        const planMatch = lowerText.match(/planifica (.+) para (?:la|el) (\w+) del (\w+)/);
         if (planMatch) {
-            const [_, meal, day, type] = planMatch;
+            const [_, meal, type, day] = planMatch;
+            // Capitalize
             const capDay = day.charAt(0).toUpperCase() + day.slice(1);
             const capType = type.charAt(0).toUpperCase() + type.slice(1);
 
-            const validDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-            const validTypes = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
-
-            if (validDays.includes(capDay) && validTypes.includes(capType)) {
-                if (currentProfile) {
-                    await updateMeal(capDay, capType, meal, currentProfile.id);
-                    responseText = `Done! I've scheduled "${meal}" for ${capDay} ${capType} for ${currentProfile.name}.`;
-                } else {
-                    responseText = "Please select a profile first.";
-                }
-            } else {
-                responseText = "I couldn't recognize that day or meal type. Please use standard days (e.g., Monday) and types (Breakfast, Lunch, Dinner, Snack).";
+            if (currentProfile) {
+                await updateMeal(capDay, capType, meal, currentProfile.id);
+                responseText = `¡Hecho! He planificado "${meal}" para ${capType} del ${capDay}.`;
             }
         }
-
-        if (lowerText.includes('keto')) responseText = SIMULATED_RESPONSES.keto;
-        if (lowerText.includes('vegan')) responseText = SIMULATED_RESPONSES.vegan;
-        if (lowerText.includes('snack')) responseText = SIMULATED_RESPONSES.snack;
 
         return responseText;
     };
@@ -76,8 +122,9 @@ export default function NutriAgent() {
         setInput('');
         setIsTyping(true);
 
+        // Simulate network delay for realism
         setTimeout(async () => {
-            const responseText = await processCommand(userMsg.text);
+            const responseText = await processCommandWithAI(userMsg.text);
             const botMsg = { id: Date.now() + 1, text: responseText, sender: 'bot' };
             setMessages(prev => [...prev, botMsg]);
             setIsTyping(false);
@@ -87,16 +134,24 @@ export default function NutriAgent() {
     return (
         <div className="h-full flex flex-col bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
             {/* Header */}
-            <div className="p-4 border-b border-gray-100 bg-primary/5 flex items-center space-x-3">
-                <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-sm">
-                    <Bot className="text-white" size={24} />
+            <div className="p-4 border-b border-gray-100 bg-primary/5 flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-sm">
+                        <Bot className="text-white" size={24} />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-gray-800">Nutri-Agente</h3>
+                        <p className="text-xs text-primary-dark font-medium flex items-center">
+                            <Sparkles size={12} className="mr-1" /> Asistente IA
+                        </p>
+                    </div>
                 </div>
-                <div>
-                    <h3 className="font-bold text-gray-800">Nutri-Agent</h3>
-                    <p className="text-xs text-primary-dark font-medium flex items-center">
-                        <Sparkles size={12} className="mr-1" /> AI Assistant
-                    </p>
-                </div>
+                {!apiKey && (
+                    <div className="flex items-center text-amber-500 text-xs bg-amber-50 px-2 py-1 rounded-lg border border-amber-100" title="Añade VITE_OPENAI_API_KEY a tu .env">
+                        <AlertTriangle size={12} className="mr-1" />
+                        <span>Modo Simulación</span>
+                    </div>
+                )}
             </div>
 
             {/* Messages */}
@@ -135,7 +190,7 @@ export default function NutriAgent() {
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder="Ask me to plan a meal or add to list..."
+                        placeholder="Pídeme planificar una comida o añadir a la lista..."
                         className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all bg-gray-50 focus:bg-white"
                     />
                     <button

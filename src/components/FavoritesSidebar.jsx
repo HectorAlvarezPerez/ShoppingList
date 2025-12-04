@@ -1,16 +1,16 @@
 import React from 'react';
 
 const FAVORITES = [
-    "Grilled Chicken Salad",
-    "Spaghetti Bolognese",
+    "Ensalada de Pollo",
+    "Espaguetis Boloñesa",
     "Tacos",
-    "Salmon & Veggies",
-    "Pizza Night",
-    "Lentil Soup",
-    "Oatmeal & Berries",
-    "Scrambled Eggs",
-    "Smoothie",
-    "Avocado Toast"
+    "Salmón con Verduras",
+    "Noche de Pizza",
+    "Sopa de Lentejas",
+    "Avena con Frutas",
+    "Huevos Revueltos",
+    "Batido de Frutas",
+    "Tostada de Aguacate"
 ];
 
 export default function FavoritesSidebar() {
@@ -21,7 +21,7 @@ export default function FavoritesSidebar() {
 
     return (
         <div className="w-64 bg-white border-l border-gray-200 p-4 hidden xl:block overflow-y-auto">
-            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide mb-4">Favorites</h3>
+            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide mb-4">Favoritos</h3>
             <div className="flex flex-wrap gap-2">
                 {FAVORITES.map((meal, index) => (
                     <div
@@ -36,7 +36,7 @@ export default function FavoritesSidebar() {
             </div>
             <div className="mt-8 p-4 bg-secondary/10 rounded-xl border border-secondary/20">
                 <p className="text-xs text-secondary-dark font-medium text-center">
-                    💡 Drag these items onto the calendar to quickly plan your week!
+                    💡 ¡Arrastra estos platos al calendario para planificar tu semana rápidamente!
                 </p>
             </div>
         </div>

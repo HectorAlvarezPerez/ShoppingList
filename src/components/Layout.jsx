@@ -18,8 +18,8 @@ export default function Layout({ children, activeTab, setActiveTab }) {
                 setIsMobileMenuOpen(false);
             }}
             className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeTab === id
-                    ? 'bg-primary text-white shadow-md'
-                    : 'text-gray-600 hover:bg-gray-100'
+                ? 'bg-primary text-white shadow-md'
+                : 'text-gray-600 hover:bg-gray-100'
                 }`}
         >
             <Icon size={20} />
@@ -52,9 +52,9 @@ export default function Layout({ children, activeTab, setActiveTab }) {
 
                     {/* Navigation */}
                     <nav className="space-y-2 flex-1">
-                        <NavItem id="planner" icon={LayoutDashboard} label="Meal Planner" />
-                        <NavItem id="shopping" icon={ShoppingCart} label="Shopping List" />
-                        <NavItem id="agent" icon={Bot} label="Nutri-Agent" />
+                        <NavItem id="planner" icon={LayoutDashboard} label="Planificador" />
+                        <NavItem id="shopping" icon={ShoppingCart} label="Lista de Compra" />
+                        <NavItem id="agent" icon={Bot} label="Nutri-Agente" />
                     </nav>
                 </div>
             </aside>
@@ -85,8 +85,8 @@ export default function Layout({ children, activeTab, setActiveTab }) {
                                 key={profile.id}
                                 onClick={() => setCurrentProfile(profile)}
                                 className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all whitespace-nowrap ${currentProfile?.id === profile.id
-                                        ? `bg-${profile.color_theme || 'primary'} text-white shadow-sm ring-2 ring-offset-2 ring-${profile.color_theme || 'primary'}`
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    ? `bg-${profile.color_theme || 'primary'} text-white shadow-sm ring-2 ring-offset-2 ring-${profile.color_theme || 'primary'}`
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                     }`}
                                 style={{
                                     backgroundColor: currentProfile?.id === profile.id ? undefined : undefined, // Let Tailwind handle it or inline styles if dynamic colors needed

@@ -48,7 +48,7 @@ export default function ShoppingList() {
         const pendingItems = shoppingItems.filter(i => !i.is_checked).map(i => `- ${i.item_name}`);
         if (pendingItems.length === 0) return '';
 
-        const text = `*Shopping List*:\n\n${pendingItems.join('\n')}`;
+        const text = `*Lista de Compra*:\n\n${pendingItems.join('\n')}`;
         return `https://wa.me/?text=${encodeURIComponent(text)}`;
     };
 
@@ -56,8 +56,8 @@ export default function ShoppingList() {
         <div className="h-full flex flex-col">
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-800">Shopping List</h2>
-                    <p className="text-gray-500">Global list for the whole family</p>
+                    <h2 className="text-2xl font-bold text-gray-800">Lista de Compra</h2>
+                    <p className="text-gray-500">Lista global para toda la familia</p>
                 </div>
                 <div className="flex space-x-2">
                     <button
@@ -65,7 +65,7 @@ export default function ShoppingList() {
                         className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
                     >
                         <RefreshCw size={18} />
-                        <span className="hidden sm:inline">Add from {currentProfile?.name}'s Menu</span>
+                        <span className="hidden sm:inline">Añadir del Menú de {currentProfile?.name}</span>
                     </button>
 
                     <a
@@ -88,7 +88,7 @@ export default function ShoppingList() {
                             type="text"
                             value={newItem}
                             onChange={(e) => setNewItem(e.target.value)}
-                            placeholder="Add item (e.g., Milk, Eggs)..."
+                            placeholder="Añadir producto (ej. Leche, Huevos)..."
                             className="w-full pl-4 pr-24 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
                         />
                         <div className="absolute right-2 flex items-center space-x-1">
@@ -118,7 +118,7 @@ export default function ShoppingList() {
                             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                                 <ShoppingCartIcon size={32} />
                             </div>
-                            <p>Your list is empty</p>
+                            <p>Tu lista está vacía</p>
                         </div>
                     ) : (
                         <div className="space-y-1">
@@ -132,8 +132,8 @@ export default function ShoppingList() {
                                         <button
                                             onClick={() => toggleShoppingItem(item.id, !item.is_checked)}
                                             className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${item.is_checked
-                                                    ? 'bg-primary border-primary text-white'
-                                                    : 'border-gray-300 hover:border-primary'
+                                                ? 'bg-primary border-primary text-white'
+                                                : 'border-gray-300 hover:border-primary'
                                                 }`}
                                         >
                                             {item.is_checked && <Check size={14} strokeWidth={3} />}
