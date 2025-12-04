@@ -4,5 +4,5 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: './', // Ensures assets are linked correctly on GitHub Pages
+  base: '/ShoppingList/', // Correct base path for GitHub Pages
 })
