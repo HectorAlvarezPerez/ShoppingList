@@ -1,27 +1,20 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Plus, Trash2, ChevronDown, ChevronUp, ChefHat, Heart, Filter } from 'lucide-react';
-
-const CATEGORIES = [
-    { value: '', label: 'Todas' },
-    { value: 'Desayuno', label: 'Desayuno' },
-    { value: 'Comida', label: 'Comida' },
-    { value: 'Cena', label: 'Cena' },
-    { value: 'Postre', label: 'Postre' },
-    { value: 'Snack', label: 'Snack' },
-    { value: 'Dulce', label: 'Dulce' },
-    { value: 'Salado', label: 'Salado' },
-];
+import { Plus, Trash2, ChevronDown, ChevronUp, ChefHat, Heart, Filter, Settings, X } from 'lucide-react';
 
 export default function Recipes() {
-    const { recipes, addRecipe, deleteRecipe, toggleFavoriteRecipe } = useApp();
+    const { recipes, addRecipe, deleteRecipe, toggleFavoriteRecipe, categories, addCategory, deleteCategory } = useApp();
     const [isAdding, setIsAdding] = useState(false);
+    const [showCategoryManager, setShowCategoryManager] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
 
     // Form State
     const [name, setName] = useState('');
     const [instructions, setInstructions] = useState('');
     const [imageUrl, setImageUrl] = useState('');
     const [category, setCategory] = useState('');
+    const [customCategory, setCustomCategory] = useState('');
+    const [showCustomInput, setShowCustomInput] = useState(false);
     const [ingredients, setIngredients] = useState([{ name: '', quantity: '' }]);
 
     // Filter State
@@ -29,6 +22,25 @@ export default function Recipes() {
 
     // View State
     const [expandedRecipeId, setExpandedRecipeId] = useState(null);
+
+    const handleAddCategory = async () => {
+        if (!newCategoryName.trim()) return;
+        try {
+            await addCategory(newCategoryName.trim());
+            setNewCategoryName('');
+        } catch (error) {
+            alert('Error al crear categoría: ' + error.message);
+        }
+    };
+
+    const handleDeleteCategory = async (id) => {
+        if (!confirm('¿Eliminar esta categoría?')) return;
+        try {
+            await deleteCategory(id);
+        } catch (error) {
+            alert('Error al eliminar categoría: ' + error.message);
+        }
+    };
 
     const handleAddIngredient = () => {
         setIngredients([...ingredients, { name: '', quantity: '' }]);
@@ -45,18 +57,32 @@ export default function Recipes() {
         setIngredients(newIngredients);
     };
 
+    const handleCategoryChange = (value) => {
+        if (value === '__custom__') {
+            setShowCustomInput(true);
+            setCategory('');
+        } else {
+            setShowCustomInput(false);
+            setCategory(value);
+            setCustomCategory('');
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
             // Filter out empty ingredients
             const validIngredients = ingredients.filter(i => i.name.trim() !== '');
-            await addRecipe(name, instructions, imageUrl, validIngredients, category || null);
+            const finalCategory = showCustomInput ? customCategory.trim() : category;
+            await addRecipe(name, instructions, imageUrl, validIngredients, finalCategory || null);
 
             // Reset form
             setName('');
             setInstructions('');
             setImageUrl('');
             setCategory('');
+            setCustomCategory('');
+            setShowCustomInput(false);
             setIngredients([{ name: '', quantity: '' }]);
             setIsAdding(false);
         } catch (error) {
@@ -93,19 +119,87 @@ export default function Recipes() {
             {/* Category Filter Tabs */}
             <div className="flex gap-2 flex-wrap items-center">
                 <Filter size={16} className="text-gray-400" />
-                {CATEGORIES.map(cat => (
+                <button
+                    onClick={() => setActiveFilter('')}
+                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${activeFilter === ''
+                        ? 'bg-primary text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                >
+                    Todas
+                </button>
+                {categories && categories.map(cat => (
                     <button
-                        key={cat.value}
-                        onClick={() => setActiveFilter(cat.value)}
-                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${activeFilter === cat.value
-                                ? 'bg-primary text-white'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        key={cat.id}
+                        onClick={() => setActiveFilter(cat.name)}
+                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${activeFilter === cat.name
+                            ? 'bg-primary text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
                     >
-                        {cat.label}
+                        {cat.icon && <span className="mr-1">{cat.icon}</span>}
+                        {cat.name}
                     </button>
                 ))}
+                <button
+                    onClick={() => setShowCategoryManager(true)}
+                    className="p-1.5 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                    title="Gestionar categorías"
+                >
+                    <Settings size={16} />
+                </button>
             </div>
+
+            {/* Category Manager Modal */}
+            {showCategoryManager && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md animate-in fade-in zoom-in-95">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-bold text-gray-800">Gestionar Categorías</h3>
+                            <button onClick={() => setShowCategoryManager(false)} className="text-gray-400 hover:text-gray-600">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="flex gap-2 mb-4">
+                            <input
+                                type="text"
+                                value={newCategoryName}
+                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                placeholder="Nueva categoría..."
+                                className="flex-1 px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+                            />
+                            <button
+                                onClick={handleAddCategory}
+                                className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark"
+                            >
+                                <Plus size={18} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                            {categories && categories.map(cat => (
+                                <div key={cat.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
+                                    <span className="flex items-center gap-2">
+                                        {cat.icon && <span>{cat.icon}</span>}
+                                        <span className="font-medium">{cat.name}</span>
+                                    </span>
+                                    <button
+                                        onClick={() => handleDeleteCategory(cat.id)}
+                                        className="text-gray-400 hover:text-red-500 p-1"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            ))}
+                            {(!categories || categories.length === 0) && (
+                                <p className="text-center text-gray-400 py-4">No hay categorías</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {isAdding && (
                 <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 animate-in fade-in slide-in-from-top-4">
@@ -125,20 +219,28 @@ export default function Recipes() {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-                                <select
-                                    value={category}
-                                    onChange={(e) => setCategory(e.target.value)}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50 bg-white"
-                                >
-                                    <option value="">Sin categoría</option>
-                                    <option value="Desayuno">🌅 Desayuno</option>
-                                    <option value="Comida">🍽️ Comida</option>
-                                    <option value="Cena">🌙 Cena</option>
-                                    <option value="Postre">🍰 Postre</option>
-                                    <option value="Snack">🍿 Snack</option>
-                                    <option value="Dulce">🍬 Dulce</option>
-                                    <option value="Salado">🧂 Salado</option>
-                                </select>
+                                <div className="flex gap-2">
+                                    <select
+                                        value={category}
+                                        onChange={(e) => setCategory(e.target.value)}
+                                        className="flex-1 px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50 bg-white"
+                                    >
+                                        <option value="">Sin categoría</option>
+                                        {categories && categories.map(cat => (
+                                            <option key={cat.id} value={cat.name}>
+                                                {cat.icon ? `${cat.icon} ${cat.name}` : cat.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCategoryManager(true)}
+                                        className="px-3 py-2 text-gray-500 hover:text-primary rounded-lg border border-gray-200 hover:border-primary/50"
+                                        title="Gestionar categorías"
+                                    >
+                                        <Settings size={16} />
+                                    </button>
+                                </div>
                             </div>
                         </div>
 

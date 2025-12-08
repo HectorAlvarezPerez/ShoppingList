@@ -9,6 +9,7 @@ export const AppProvider = ({ children }) => {
     const [meals, setMeals] = useState([]);
     const [shoppingItems, setShoppingItems] = useState([]);
     const [recipes, setRecipes] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [session, setSession] = useState(null);
 
@@ -31,6 +32,7 @@ export const AppProvider = ({ children }) => {
                 setMeals([]);
                 setShoppingItems([]);
                 setRecipes([]);
+                setCategories([]);
                 setLoading(false);
             }
         });
@@ -85,11 +87,13 @@ export const AppProvider = ({ children }) => {
                 *,
                 recipe_ingredients (*)
             `).order('created_at', { ascending: false });
+            const { data: categoriesData } = await supabase.from('categories').select('*').order('name');
 
             setProfiles(profilesData || []);
             setMeals(mealsData || []);
             setShoppingItems(itemsData || []);
             setRecipes(recipesData || []);
+            setCategories(categoriesData || []);
 
             // Set default profile (Mom or first one)
             if (profilesData && profilesData.length > 0) {
@@ -206,6 +210,29 @@ export const AppProvider = ({ children }) => {
         }
     };
 
+    // Category Management
+    const addCategory = async (name, icon = null) => {
+        const { data, error } = await supabase
+            .from('categories')
+            .insert([{ name, icon }])
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        // Optimistically add to state
+        setCategories(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+        return data;
+    };
+
+    const deleteCategory = async (id) => {
+        const { error } = await supabase.from('categories').delete().eq('id', id);
+        if (error) throw error;
+
+        // Remove from state
+        setCategories(prev => prev.filter(c => c.id !== id));
+    };
+
     return (
         <AppContext.Provider value={{
             loading,
@@ -221,6 +248,9 @@ export const AppProvider = ({ children }) => {
             addRecipe,
             deleteRecipe,
             toggleFavoriteRecipe,
+            categories,
+            addCategory,
+            deleteCategory,
             session
         }}>
             {children}
