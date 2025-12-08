@@ -4,7 +4,8 @@ import {
     LayoutDashboard,
     ShoppingCart,
     Bot,
-    Menu
+    Menu,
+    ChefHat
 } from 'lucide-react';
 
 export default function Layout({ children, activeTab, setActiveTab }) {
@@ -62,6 +63,7 @@ export default function Layout({ children, activeTab, setActiveTab }) {
                     <nav className="space-y-2 flex-1">
                         <NavItem id="planner" icon={LayoutDashboard} label="Planificador" />
                         <NavItem id="shopping" icon={ShoppingCart} label="Lista de Compra" />
+                        <NavItem id="recipes" icon={ChefHat} label="Recetas" />
                         <NavItem id="agent" icon={Bot} label="Nutri-Agente" />
                     </nav>
                 </div>

@@ -35,7 +35,30 @@ create table shopping_list (
   is_checked boolean default false
 );
 
--- DISABLE RLS (Allow public access)
-alter table profiles disable row level security;
-alter table weekly_plan disable row level security;
-alter table shopping_list disable row level security;
+
+-- 4. Recipes Table
+create table recipes (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  name text not null,
+  instructions text,
+  image_url text,
+  is_favorite boolean default false
+);
+
+-- 5. Recipe Ingredients Table
+create table recipe_ingredients (
+  id uuid default gen_random_uuid() primary key,
+  recipe_id uuid references recipes(id) on delete cascade,
+  ingredient_name text not null,
+  quantity text
+);
+
+-- ENABLE RLS (Secure Family Access)
+alter table profiles enable row level security;
+alter table weekly_plan enable row level security;
+alter table shopping_list enable row level security;
+alter table recipes enable row level security;
+alter table recipe_ingredients enable row level security;
+
+-- Note: You must apply policies from 'enable_rls.sql' for this to work.

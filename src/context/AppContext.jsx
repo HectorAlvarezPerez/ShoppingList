@@ -8,30 +8,70 @@ export const AppProvider = ({ children }) => {
     const [currentProfile, setCurrentProfile] = useState(null);
     const [meals, setMeals] = useState([]);
     const [shoppingItems, setShoppingItems] = useState([]);
+    const [recipes, setRecipes] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [session, setSession] = useState(null);
 
     useEffect(() => {
-        fetchData();
+        // 1. Get initial session
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setSession(session);
+            if (session) fetchData();
+            else setLoading(false);
+        });
 
-        // Realtime Subscription for Shopping List (Global)
-        const shoppingSubscription = supabase
-            .channel('shopping_list_changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_list' }, (payload) => {
-                handleShoppingListChange(payload);
-            })
-            .subscribe();
+        // 2. Listen for auth changes
+        const {
+            data: { subscription: authListener },
+        } = supabase.auth.onAuthStateChange((_event, session) => {
+            setSession(session);
+            if (session) fetchData();
+            else {
+                setProfiles([]);
+                setMeals([]);
+                setShoppingItems([]);
+                setRecipes([]);
+                setLoading(false);
+            }
+        });
 
-        // Realtime Subscription for Weekly Plan
-        const mealsSubscription = supabase
-            .channel('weekly_plan_changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'weekly_plan' }, (payload) => {
-                handleMealChange(payload);
-            })
-            .subscribe();
+        // 3. Realtime Subscriptions (Only if session exists - simplified here, 
+        // we ideally re-subscribe when session changes, but for simplicity we'll keep it global 
+        // as policies will block access if not auth anyway).
+        // ACTUALLY: We should probably move subscriptions inside a useEffect that depends on session.
+        let shoppingSubscription, mealsSubscription, recipesSubscription;
+
+        if (true) { // We'll rely on connection staying open, but data policies enforcing access
+            // Realtime Subscription for Shopping List (Global)
+            shoppingSubscription = supabase
+                .channel('shopping_list_changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_list' }, (payload) => {
+                    handleShoppingListChange(payload);
+                })
+                .subscribe();
+
+            // Realtime Subscription for Weekly Plan
+            mealsSubscription = supabase
+                .channel('weekly_plan_changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'weekly_plan' }, (payload) => {
+                    handleMealChange(payload);
+                })
+                .subscribe();
+
+            // Realtime Subscription for Recipes
+            recipesSubscription = supabase
+                .channel('recipes_changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'recipes' }, () => {
+                    fetchRecipesOnly();
+                })
+                .subscribe();
+        }
 
         return () => {
-            shoppingSubscription.unsubscribe();
-            mealsSubscription.unsubscribe();
+            authListener.unsubscribe();
+            if (shoppingSubscription) shoppingSubscription.unsubscribe();
+            if (mealsSubscription) mealsSubscription.unsubscribe();
+            if (recipesSubscription) recipesSubscription.unsubscribe();
         };
     }, []);
 
@@ -41,10 +81,15 @@ export const AppProvider = ({ children }) => {
             const { data: profilesData } = await supabase.from('profiles').select('*').order('name');
             const { data: mealsData } = await supabase.from('weekly_plan').select('*');
             const { data: itemsData } = await supabase.from('shopping_list').select('*').order('created_at');
+            const { data: recipesData } = await supabase.from('recipes').select(`
+                *,
+                recipe_ingredients (*)
+            `).order('created_at', { ascending: false });
 
             setProfiles(profilesData || []);
             setMeals(mealsData || []);
             setShoppingItems(itemsData || []);
+            setRecipes(recipesData || []);
 
             // Set default profile (Mom or first one)
             if (profilesData && profilesData.length > 0) {
@@ -56,6 +101,14 @@ export const AppProvider = ({ children }) => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const fetchRecipesOnly = async () => {
+        const { data } = await supabase.from('recipes').select(`
+            *,
+            recipe_ingredients (*)
+        `).order('created_at', { ascending: false });
+        if (data) setRecipes(data);
     };
 
     const handleShoppingListChange = (payload) => {
@@ -103,6 +156,56 @@ export const AppProvider = ({ children }) => {
         if (error) throw error;
     };
 
+    const addRecipe = async (name, instructions, imageUrl, ingredients) => {
+        // 1. Insert Recipe
+        const { data: recipeData, error: recipeError } = await supabase
+            .from('recipes')
+            .insert([{ name, instructions, image_url: imageUrl }])
+            .select()
+            .single();
+
+        if (recipeError) throw recipeError;
+
+        // 2. Insert Ingredients
+        if (ingredients && ingredients.length > 0) {
+            const ingredientsToInsert = ingredients.map(ing => ({
+                recipe_id: recipeData.id,
+                ingredient_name: ing.name,
+                quantity: ing.quantity
+            }));
+
+            const { error: ingError } = await supabase
+                .from('recipe_ingredients')
+                .insert(ingredientsToInsert);
+
+            if (ingError) throw ingError;
+        }
+
+        // Trigger fetch to update UI immediately (though subscription might hit too)
+        fetchRecipesOnly();
+    };
+
+    const deleteRecipe = async (id) => {
+        const { error } = await supabase.from('recipes').delete().eq('id', id);
+        if (error) throw error;
+        // fetchRecipesOnly will be triggered by subscription
+    };
+
+    const toggleFavoriteRecipe = async (id, isFavorite) => {
+        // Optimistic Update
+        setRecipes(prev => prev.map(r => r.id === id ? { ...r, is_favorite: isFavorite } : r));
+
+        try {
+            const { error } = await supabase.from('recipes').update({ is_favorite: isFavorite }).eq('id', id);
+            if (error) throw error;
+        } catch (error) {
+            // Revert on error
+            setRecipes(prev => prev.map(r => r.id === id ? { ...r, is_favorite: !isFavorite } : r));
+            console.error("Error toggling favorite:", error);
+            throw error; // Re-throw so UI can alert if needed
+        }
+    };
+
     return (
         <AppContext.Provider value={{
             loading,
@@ -113,7 +216,12 @@ export const AppProvider = ({ children }) => {
             shoppingItems,
             updateMeal,
             addShoppingItem,
-            toggleShoppingItem
+            toggleShoppingItem,
+            recipes,
+            addRecipe,
+            deleteRecipe,
+            toggleFavoriteRecipe,
+            session
         }}>
             {children}
         </AppContext.Provider>
