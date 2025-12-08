@@ -5,7 +5,7 @@ import FavoritesSidebar from './FavoritesSidebar';
 import { Eye, EyeOff } from 'lucide-react';
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-const MEAL_TYPES = ['Desayuno', 'Comida', 'Cena', 'Snack'];
+const MEAL_TYPES = ['Comida', 'Cena'];
 
 export default function MealPlanner() {
     const { meals, updateMeal, currentProfile } = useApp();
