@@ -1,20 +1,16 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { useVoiceToText } from '../hooks/useVoiceToText';
-import { Check, Plus, Mic, MicOff, RefreshCw, Share2 } from 'lucide-react';
+import { Check, Plus, RefreshCw, Share2, Sparkles, Loader2 } from 'lucide-react';
+import OpenAI from 'openai';
 
 export default function ShoppingList() {
-    const { shoppingItems, addShoppingItem, toggleShoppingItem, meals, currentProfile } = useApp();
+    const { shoppingItems, addShoppingItem, toggleShoppingItem, meals, currentProfile, recipes } = useApp();
     const [newItem, setNewItem] = useState('');
-    const { isListening, transcript, startListening, stopListening, setTranscript } = useVoiceToText();
+    const [isGenerating, setIsGenerating] = useState(false);
 
-    // Handle voice input
-    React.useEffect(() => {
-        if (transcript) {
-            setNewItem(prev => prev ? `${prev} ${transcript}` : transcript);
-            setTranscript('');
-        }
-    }, [transcript, setTranscript]);
+    // Initialize OpenAI Client
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    const openai = apiKey ? new OpenAI({ apiKey, dangerouslyAllowBrowser: true }) : null;
 
     const handleAddItem = async (e) => {
         e.preventDefault();
@@ -24,23 +20,91 @@ export default function ShoppingList() {
         }
     };
 
-    const generateFromMenu = async () => {
+    const generateWithAI = async () => {
         if (!currentProfile) return;
+        setIsGenerating(true);
 
-        // Get all meal contents for current profile
-        const profileMeals = meals.filter(m => m.profile_id === currentProfile.id && m.dish_name);
+        try {
+            // Get all meal contents for current profile
+            const profileMeals = meals.filter(m => m.profile_id === currentProfile.id && m.dish_name);
 
-        const ingredients = new Set();
-        profileMeals.forEach(meal => {
-            const parts = meal.dish_name.split(/[,;\n]+/).map(s => s.trim()).filter(s => s.length > 2);
-            parts.forEach(p => ingredients.add(p));
-        });
-
-        for (const item of ingredients) {
-            const exists = shoppingItems.some(si => si.item_name.toLowerCase() === item.toLowerCase());
-            if (!exists) {
-                await addShoppingItem(item);
+            if (profileMeals.length === 0) {
+                alert('No hay comidas planificadas esta semana. Añade platos al calendario primero.');
+                setIsGenerating(false);
+                return;
             }
+
+            // Build meal list text
+            const mealList = profileMeals.map(m => `${m.day_of_week} ${m.meal_type}: ${m.dish_name}`).join('\n');
+
+            // Build recipe info for context
+            const recipeInfo = recipes.map(r => {
+                const ings = r.recipe_ingredients?.map(i => i.ingredient_name).join(', ') || '';
+                return `${r.name}: ${ings}`;
+            }).join('\n');
+
+            if (!openai) {
+                // Fallback: simple extraction
+                const ingredients = new Set();
+                profileMeals.forEach(meal => {
+                    const parts = meal.dish_name.split(/[,;\n]+/).map(s => s.trim()).filter(s => s.length > 2);
+                    parts.forEach(p => ingredients.add(p));
+                });
+                for (const item of ingredients) {
+                    const exists = shoppingItems.some(si => si.item_name.toLowerCase() === item.toLowerCase());
+                    if (!exists) await addShoppingItem(item);
+                }
+                setIsGenerating(false);
+                return;
+            }
+
+            // Call OpenAI
+            const completion = await openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages: [
+                    {
+                        role: "system",
+                        content: `Eres un asistente de cocina. Tu tarea es generar una lista de la compra basándote en el menú semanal.
+
+REGLAS:
+- Devuelve SOLO una lista de ingredientes, uno por línea
+- Solo nombres de productos, SIN cantidades
+- Agrupa ingredientes similares (no repitas)
+- Sé específico pero conciso (ej: "Tomates", "Pechuga de pollo")
+- No incluyas ingredientes básicos que toda cocina tiene (sal, aceite, pimienta)
+- Responde SOLO con la lista, sin explicaciones ni formato adicional`
+                    },
+                    {
+                        role: "user",
+                        content: `Menú semanal:\n${mealList}\n\nRecetas conocidas con ingredientes:\n${recipeInfo}\n\nGenera la lista de la compra:`
+                    }
+                ],
+                temperature: 0.3,
+                max_tokens: 500
+            });
+
+            const response = completion.choices[0].message.content;
+
+            // Parse response and add items
+            const items = response.split('\n')
+                .map(line => line.replace(/^[-•*]\s*/, '').trim())
+                .filter(line => line.length > 1);
+
+            for (const item of items) {
+                const exists = shoppingItems.some(si =>
+                    si.item_name.toLowerCase().includes(item.toLowerCase().split(' ')[0]) ||
+                    item.toLowerCase().includes(si.item_name.toLowerCase().split(' ')[0])
+                );
+                if (!exists) {
+                    await addShoppingItem(item);
+                }
+            }
+
+        } catch (error) {
+            console.error('AI Error:', error);
+            alert('Error al generar la lista. Inténtalo de nuevo.');
+        } finally {
+            setIsGenerating(false);
         }
     };
 
@@ -61,11 +125,21 @@ export default function ShoppingList() {
                 </div>
                 <div className="flex space-x-2">
                     <button
-                        onClick={generateFromMenu}
-                        className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+                        onClick={generateWithAI}
+                        disabled={isGenerating}
+                        className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all shadow-sm disabled:opacity-50"
                     >
-                        <RefreshCw size={18} />
-                        <span className="hidden sm:inline">Añadir del Menú de {currentProfile?.name}</span>
+                        {isGenerating ? (
+                            <>
+                                <Loader2 size={18} className="animate-spin" />
+                                <span className="hidden sm:inline">Generando...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Sparkles size={18} />
+                                <span className="hidden sm:inline">Generar con IA</span>
+                            </>
+                        )}
                     </button>
 
                     <a
@@ -89,17 +163,9 @@ export default function ShoppingList() {
                             value={newItem}
                             onChange={(e) => setNewItem(e.target.value)}
                             placeholder="Añadir producto (ej. Leche, Huevos)..."
-                            className="w-full pl-4 pr-24 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
+                            className="w-full pl-4 pr-14 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all"
                         />
                         <div className="absolute right-2 flex items-center space-x-1">
-                            <button
-                                type="button"
-                                onClick={isListening ? stopListening : startListening}
-                                className={`p-2 rounded-lg transition-colors ${isListening ? 'text-red-500 bg-red-50 animate-pulse' : 'text-gray-400 hover:text-primary hover:text-primary'
-                                    }`}
-                            >
-                                {isListening ? <MicOff size={20} /> : <Mic size={20} />}
-                            </button>
                             <button
                                 type="submit"
                                 disabled={!newItem.trim()}
@@ -119,6 +185,7 @@ export default function ShoppingList() {
                                 <ShoppingCartIcon size={32} />
                             </div>
                             <p>Tu lista está vacía</p>
+                            <p className="text-sm mt-2">Pulsa "Generar con IA" para crear la lista del menú</p>
                         </div>
                     ) : (
                         <div className="space-y-1">
