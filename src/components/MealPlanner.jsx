@@ -12,7 +12,6 @@ export default function MealPlanner() {
     const [isFridgeView, setIsFridgeView] = useState(false);
 
     const getMealContent = (day, type) => {
-        // Filter by profile_id and match day/type
         const meal = meals.find(m =>
             m.day_of_week === day &&
             m.meal_type === type &&
@@ -31,7 +30,6 @@ export default function MealPlanner() {
         const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
         const todayIndex = DAYS.indexOf(today) !== -1 ? DAYS.indexOf(today) : 0;
         const tomorrowIndex = (todayIndex + 1) % 7;
-        const tomorrow = DAYS[tomorrowIndex];
         const viewDays = [DAYS[todayIndex], DAYS[tomorrowIndex]];
 
         return (
