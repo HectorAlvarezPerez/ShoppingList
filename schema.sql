@@ -43,7 +43,9 @@ create table recipes (
   name text not null,
   instructions text,
   image_url text,
-  is_favorite boolean default false
+  is_favorite boolean default false,
+  category text,
+  user_id uuid default auth.uid()
 );
 
 -- 5. Recipe Ingredients Table

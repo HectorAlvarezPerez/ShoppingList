@@ -156,11 +156,11 @@ export const AppProvider = ({ children }) => {
         if (error) throw error;
     };
 
-    const addRecipe = async (name, instructions, imageUrl, ingredients) => {
+    const addRecipe = async (name, instructions, imageUrl, ingredients, category) => {
         // 1. Insert Recipe
         const { data: recipeData, error: recipeError } = await supabase
             .from('recipes')
-            .insert([{ name, instructions, image_url: imageUrl }])
+            .insert([{ name, instructions, image_url: imageUrl, category }])
             .select()
             .single();
 

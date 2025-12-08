@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Plus, Trash2, ChevronDown, ChevronUp, ChefHat, ExternalLink, Heart } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, ChefHat, Heart, Filter } from 'lucide-react';
+
+const CATEGORIES = [
+    { value: '', label: 'Todas' },
+    { value: 'Desayuno', label: 'Desayuno' },
+    { value: 'Comida', label: 'Comida' },
+    { value: 'Cena', label: 'Cena' },
+    { value: 'Postre', label: 'Postre' },
+    { value: 'Snack', label: 'Snack' },
+    { value: 'Dulce', label: 'Dulce' },
+    { value: 'Salado', label: 'Salado' },
+];
 
 export default function Recipes() {
     const { recipes, addRecipe, deleteRecipe, toggleFavoriteRecipe } = useApp();
@@ -10,7 +21,11 @@ export default function Recipes() {
     const [name, setName] = useState('');
     const [instructions, setInstructions] = useState('');
     const [imageUrl, setImageUrl] = useState('');
+    const [category, setCategory] = useState('');
     const [ingredients, setIngredients] = useState([{ name: '', quantity: '' }]);
+
+    // Filter State
+    const [activeFilter, setActiveFilter] = useState('');
 
     // View State
     const [expandedRecipeId, setExpandedRecipeId] = useState(null);
@@ -35,12 +50,13 @@ export default function Recipes() {
         try {
             // Filter out empty ingredients
             const validIngredients = ingredients.filter(i => i.name.trim() !== '');
-            await addRecipe(name, instructions, imageUrl, validIngredients);
+            await addRecipe(name, instructions, imageUrl, validIngredients, category || null);
 
             // Reset form
             setName('');
             setInstructions('');
             setImageUrl('');
+            setCategory('');
             setIngredients([{ name: '', quantity: '' }]);
             setIsAdding(false);
         } catch (error) {
@@ -48,6 +64,11 @@ export default function Recipes() {
             alert('Error al guardar la receta');
         }
     };
+
+    // Filter recipes by category
+    const filteredRecipes = activeFilter
+        ? recipes.filter(r => r.category === activeFilter)
+        : recipes;
 
     return (
         <div className="space-y-6">
@@ -69,19 +90,56 @@ export default function Recipes() {
                 </button>
             </div>
 
+            {/* Category Filter Tabs */}
+            <div className="flex gap-2 flex-wrap items-center">
+                <Filter size={16} className="text-gray-400" />
+                {CATEGORIES.map(cat => (
+                    <button
+                        key={cat.value}
+                        onClick={() => setActiveFilter(cat.value)}
+                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${activeFilter === cat.value
+                                ? 'bg-primary text-white'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                    >
+                        {cat.label}
+                    </button>
+                ))}
+            </div>
+
             {isAdding && (
                 <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 animate-in fade-in slide-in-from-top-4">
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de la Receta</label>
-                            <input
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                required
-                                placeholder="ej. Lentejas de la Abuela"
-                            />
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de la Receta</label>
+                                <input
+                                    type="text"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                    required
+                                    placeholder="ej. Lentejas de la Abuela"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                                <select
+                                    value={category}
+                                    onChange={(e) => setCategory(e.target.value)}
+                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50 bg-white"
+                                >
+                                    <option value="">Sin categoría</option>
+                                    <option value="Desayuno">🌅 Desayuno</option>
+                                    <option value="Comida">🍽️ Comida</option>
+                                    <option value="Cena">🌙 Cena</option>
+                                    <option value="Postre">🍰 Postre</option>
+                                    <option value="Snack">🍿 Snack</option>
+                                    <option value="Dulce">🍬 Dulce</option>
+                                    <option value="Salado">🧂 Salado</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div>
@@ -159,7 +217,7 @@ export default function Recipes() {
             )}
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {recipes.map(recipe => (
+                {filteredRecipes.map(recipe => (
                     <div key={recipe.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
                         {recipe.image_url && (
                             <div className="h-48 overflow-hidden bg-gray-100">
@@ -168,7 +226,14 @@ export default function Recipes() {
                         )}
                         <div className="p-4">
                             <div className="flex justify-between items-start mb-2">
-                                <h3 className="font-bold text-lg text-gray-800">{recipe.name}</h3>
+                                <div>
+                                    <h3 className="font-bold text-lg text-gray-800">{recipe.name}</h3>
+                                    {recipe.category && (
+                                        <span className="inline-block mt-1 px-2 py-0.5 bg-primary/10 text-primary text-xs font-medium rounded-full">
+                                            {recipe.category}
+                                        </span>
+                                    )}
+                                </div>
                                 <div className="flex gap-1">
                                     <button
                                         onClick={async () => {
@@ -236,13 +301,19 @@ export default function Recipes() {
                     </div>
                 ))}
 
-                {recipes.length === 0 && !isAdding && (
+                {filteredRecipes.length === 0 && !isAdding && (
                     <div className="col-span-full text-center py-12 text-gray-400">
                         <ChefHat size={48} className="mx-auto mb-4 opacity-20" />
-                        <p>No tienes recetas guardadas aún.</p>
-                        <button onClick={() => setIsAdding(true)} className="text-primary hover:underline mt-2">
-                            ¡Crea la primera!
-                        </button>
+                        {activeFilter ? (
+                            <p>No tienes recetas en esta categoría.</p>
+                        ) : (
+                            <>
+                                <p>No tienes recetas guardadas aún.</p>
+                                <button onClick={() => setIsAdding(true)} className="text-primary hover:underline mt-2">
+                                    ¡Crea la primera!
+                                </button>
+                            </>
+                        )}
                     </div>
                 )}
             </div>
