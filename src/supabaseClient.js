@@ -9,7 +9,7 @@ if (supabaseUrl && supabaseAnonKey) {
     supabase = createClient(supabaseUrl, supabaseAnonKey);
 } else {
     console.error('Missing Supabase environment variables! Check .env or GitHub Secrets.');
-    // Create a dummy client that logs errors instead of crashing immediately
+    // Create dummy client that logs errors instead of crashing immediately
     supabase = {
         auth: {
             getSession: async () => ({ data: { session: null }, error: new Error('Missing Env Vars') }),
