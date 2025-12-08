@@ -59,7 +59,7 @@ export const AppProvider = ({ children }) => {
                     handleMealChange(payload);
                 })
                 .subscribe();
-                
+
 
             // Realtime Subscription for Recipes
             recipesSubscription = supabase
@@ -157,8 +157,18 @@ export const AppProvider = ({ children }) => {
     };
 
     const toggleShoppingItem = async (id, isChecked) => {
-        const { error } = await supabase.from('shopping_list').update({ is_checked: isChecked }).eq('id', id);
-        if (error) throw error;
+        // Optimistic Update
+        setShoppingItems(prev => prev.map(item => item.id === id ? { ...item, is_checked: isChecked } : item));
+
+        try {
+            const { error } = await supabase.from('shopping_list').update({ is_checked: isChecked }).eq('id', id);
+            if (error) throw error;
+        } catch (error) {
+            // Revert on error
+            setShoppingItems(prev => prev.map(item => item.id === id ? { ...item, is_checked: !isChecked } : item));
+            console.error("Error toggling shopping item:", error);
+            // Optional: Alert user
+        }
     };
 
     const addRecipe = async (name, instructions, imageUrl, ingredients, category) => {
