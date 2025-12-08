@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Mic, MicOff, Book, X } from 'lucide-react';
-import { useVoiceToText } from '../hooks/useVoiceToText';
+import { Book, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function MealCell({
@@ -16,7 +15,6 @@ export default function MealCell({
     const [isEditing, setIsEditing] = useState(false);
     const [showPicker, setShowPicker] = useState(false);
     const [pickerPosition, setPickerPosition] = useState({ top: 0, left: 0 });
-    const { isListening, transcript, startListening, setTranscript } = useVoiceToText();
     const textareaRef = useRef(null);
     const buttonRef = useRef(null);
     const pickerRef = useRef(null);
@@ -24,15 +22,6 @@ export default function MealCell({
     useEffect(() => {
         setValue(content || '');
     }, [content]);
-
-    useEffect(() => {
-        if (transcript) {
-            const newValue = value ? `${value} ${transcript}` : transcript;
-            setValue(newValue);
-            onUpdate(day, mealType, newValue);
-            setTranscript('');
-        }
-    }, [transcript, value, day, mealType, onUpdate, setTranscript]);
 
     // Close picker when clicking outside
     useEffect(() => {
@@ -173,7 +162,7 @@ export default function MealCell({
             />
 
             {/* Action Buttons */}
-            <div className={`absolute bottom-2 right-2 flex gap-1 transition-all ${isListening || showPicker ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+            <div className={`absolute bottom-2 right-2 flex gap-1 transition-all ${showPicker ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                 {/* Recipe Picker Button */}
                 <button
                     ref={buttonRef}
@@ -189,18 +178,6 @@ export default function MealCell({
                     title="Añadir receta guardada"
                 >
                     <Book size={14} />
-                </button>
-
-                {/* Voice Button */}
-                <button
-                    onClick={isListening ? null : startListening}
-                    className={`p-1.5 rounded-full transition-colors ${isListening
-                        ? 'bg-red-100 text-red-500 animate-pulse'
-                        : 'bg-gray-50 text-gray-400 hover:bg-primary/10 hover:text-primary'
-                        }`}
-                    title="Hablar para añadir"
-                >
-                    {isListening ? <MicOff size={14} /> : <Mic size={14} />}
                 </button>
             </div>
 
