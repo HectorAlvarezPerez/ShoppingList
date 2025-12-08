@@ -59,6 +59,7 @@ export const AppProvider = ({ children }) => {
                     handleMealChange(payload);
                 })
                 .subscribe();
+                
 
             // Realtime Subscription for Recipes
             recipesSubscription = supabase
@@ -190,9 +191,15 @@ export const AppProvider = ({ children }) => {
     };
 
     const deleteRecipe = async (id) => {
+        // Optimistic delete
+        setRecipes(prev => prev.filter(r => r.id !== id));
+
         const { error } = await supabase.from('recipes').delete().eq('id', id);
-        if (error) throw error;
-        // fetchRecipesOnly will be triggered by subscription
+        if (error) {
+            // Revert on error - refetch
+            fetchRecipesOnly();
+            throw error;
+        }
     };
 
     const toggleFavoriteRecipe = async (id, isFavorite) => {
