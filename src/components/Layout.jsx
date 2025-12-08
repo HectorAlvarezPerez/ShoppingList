@@ -5,12 +5,15 @@ import {
     ShoppingCart,
     Bot,
     Menu,
-    ChefHat
+    ChefHat,
+    Settings
 } from 'lucide-react';
+import ProfileManagerModal from './ProfileManagerModal';
 
 export default function Layout({ children, activeTab, setActiveTab }) {
     const { profiles, currentProfile, setCurrentProfile } = useApp();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
     const NavItem = ({ id, icon: Icon, label }) => (
         <button
@@ -110,15 +113,29 @@ export default function Layout({ children, activeTab, setActiveTab }) {
                                 </button>
                             );
                         })}
+
+                        <button
+                            onClick={() => setIsProfileModalOpen(true)}
+                            className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600 transition-colors"
+                            title="Manage Profiles"
+                        >
+                            <Settings size={20} />
+                        </button>
                     </div>
                 </div>
+
+                <ProfileManagerModal
+                    isOpen={isProfileModalOpen}
+                    onClose={() => setIsProfileModalOpen(false)}
+                />
+
 
                 <div className="flex-1 overflow-y-auto p-4 lg:p-8">
                     <div className="max-w-6xl mx-auto">
                         {children}
                     </div>
                 </div>
-            </main>
-        </div>
+            </main >
+        </div >
     );
 }

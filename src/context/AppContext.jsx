@@ -250,6 +250,50 @@ export const AppProvider = ({ children }) => {
         setCategories(prev => prev.filter(c => c.id !== id));
     };
 
+    // Profile Management
+    const addProfile = async (name, colorTheme) => {
+        const { data, error } = await supabase
+            .from('profiles')
+            .insert([{ name, color_theme: colorTheme }])
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        setProfiles(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+        return data;
+    };
+
+    const updateProfile = async (id, updates) => {
+        const { data, error } = await supabase
+            .from('profiles')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        setProfiles(prev => prev.map(p => p.id === id ? data : p).sort((a, b) => a.name.localeCompare(b.name)));
+
+        // Update current profile if it's the one being edited
+        if (currentProfile && currentProfile.id === id) {
+            setCurrentProfile(data);
+        }
+    };
+
+    const deleteProfile = async (id) => {
+        const { error } = await supabase.from('profiles').delete().eq('id', id);
+        if (error) throw error;
+
+        setProfiles(prev => prev.filter(p => p.id !== id));
+
+        // If current profile is deleted, switch to another one
+        if (currentProfile && currentProfile.id === id) {
+            setCurrentProfile(profiles.find(p => p.id !== id) || null);
+        }
+    };
+
     return (
         <AppContext.Provider value={{
             loading,
@@ -268,6 +312,9 @@ export const AppProvider = ({ children }) => {
             categories,
             addCategory,
             deleteCategory,
+            addProfile,
+            updateProfile,
+            deleteProfile,
             session
         }}>
             {children}
